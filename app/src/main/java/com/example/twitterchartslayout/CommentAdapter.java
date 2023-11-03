@@ -1,11 +1,13 @@
 // CommentAdapter.java
 package com.example.twitterchartslayout;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -17,18 +19,18 @@ import java.util.List;
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentViewHolder> {
 
     private List<Comment> comments;
-    private OnItemClickListener onItemClickListener;
-    public interface OnItemClickListener {
-        void onItemClick(int position);
-    }
-
-    public void setOnItemClickListener(OnItemClickListener listener) {
-        this.onItemClickListener = listener;
+    private OnItemClickListenerCommets onItemClickListener;
+    public interface OnItemClickListenerCommets {
+        void onItemClick(Comment comment);
     }
 
 
-    public CommentAdapter(List<Comment> comments) {
+
+
+    public CommentAdapter(List<Comment> comments, OnItemClickListenerCommets onItemClickListener) {
         this.comments = comments;
+        this.onItemClickListener=onItemClickListener;
+
     }
     public void setComments(List<Comment> comments) {
         this.comments = comments;
@@ -68,17 +70,36 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             contentTextView = itemView.findViewById(R.id.contentTextView);
             nestedRecyclerView = itemView.findViewById(R.id.nestedRecyclerView);
 
-            nestedAdapter = new CommentAdapter(new ArrayList<>());
+            nestedAdapter = new CommentAdapter(new ArrayList<>(),onItemClickListener);
             nestedRecyclerView.setAdapter(nestedAdapter);
             nestedRecyclerView.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
+            nestedAdapter.getItemCount();
 
-            itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && onItemClickListener != null) {
-                    onItemClickListener.onItemClick(position);
-                }
-            });
-        }
+
+
+                    itemView.setOnClickListener(v -> {
+                        int position = getAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+
+                        onItemClickListener.onItemClick(comments.get(position));
+                        if(nestedAdapter.getItemCount()>0) {
+                            Log.d("child count", String.valueOf(getBindingAdapterPosition()));
+
+                                toggleNestedCommentsVisibility();
+                            }
+                        }
+                    });
+
+
+            }
+
+//            itemView.setOnClickListener(v -> {
+//                int position = getAdapterPosition();
+//                if (position != RecyclerView.NO_POSITION && onItemClickListener != null) {
+//                    onItemClickListener.onItemClick(position);
+//                }
+//            });
+
 
 
 
@@ -94,6 +115,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             nestedAdapter.notifyDataSetChanged();
         }
 
+
         public void toggleNestedCommentsVisibility() {
             // Toggle visibility of nested comments
             if (nestedRecyclerView.getVisibility() == View.VISIBLE) {
@@ -103,4 +125,8 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
             }
         }
     }
+
+
+
+
 }

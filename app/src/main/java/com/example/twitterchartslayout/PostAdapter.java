@@ -1,6 +1,7 @@
 // PostAdapter.java
 package com.example.twitterchartslayout;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,19 +13,35 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> {
+public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder> implements CommentAdapter.OnItemClickListenerCommets {
 
     private List<Post> posts;
     private OnPostClickListener onPostClickListener;
+    private CommentAdapter.OnItemClickListenerCommets onItemClickListenerComments;
+    private int openPosition = RecyclerView.NO_POSITION;
 
-    public interface OnPostClickListener {
-        void onPostClick(int position);
-    }
 
     public PostAdapter(List<Post> posts, OnPostClickListener onPostClickListener) {
         this.posts = posts;
         this.onPostClickListener = onPostClickListener;
+        this.onItemClickListenerComments = this;
+
     }
+
+
+    @Override
+    public void onItemClick(Comment comment) {
+        if (onPostClickListener != null) {
+            onPostClickListener.onCommentClick(comment);
+        }
+    }
+
+    public interface OnPostClickListener {
+        void onPostClick(Post post);
+        void onCommentClick(Comment comment);
+    }
+
+
 
     @NonNull
     @Override
@@ -35,7 +52,7 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull PostViewHolder holder, int position) {
-        holder.bind(posts.get(position));
+        holder.bind(posts.get(position),position);
     }
 
     @Override
@@ -60,57 +77,56 @@ public class PostAdapter extends RecyclerView.Adapter<PostAdapter.PostViewHolder
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
-                    onPostClickListener.onPostClick(position);
-                    toggleCommentsVisibility();
+                    onPostClickListener.onPostClick(posts.get(position));
+                    if(commentAdapter.getItemCount()>0) {
+                        Log.d("child count", String.valueOf(getBindingAdapterPosition()));
+
+                        toggleCommentsVisibility(position);
+                    }
+
                 }
             });
         }
 
-        public void bind(Post post) {
+        public void bind(Post post,int position) {
             usernameTextView.setText(post.getUsername());
             contentTextView.setText(post.getContent());
 
             // Initially hide the comments
-            commentsRecyclerView.setVisibility(View.GONE);
+            commentsRecyclerView.setVisibility(position == openPosition ? View.VISIBLE : View.GONE);
+
 
             // Set up comments RecyclerView
-            commentAdapter = new CommentAdapter(post.getComments());
+            commentAdapter = new CommentAdapter(post.getComments(), onItemClickListenerComments);
             commentsRecyclerView.setAdapter(commentAdapter);
             commentsRecyclerView.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
 
-            commentAdapter.setOnItemClickListener(position -> {
-                // Forward the click event to the PostAdapter's listener
-                if (onPostClickListener != null) {
-                    onPostClickListener.onPostClick(getAdapterPosition());
-                }
-            });
+
 
         }
-
-        private void toggleCommentsVisibility() {
+        private void toggleCommentsVisibility(int position) {
             // Toggle visibility of nested comments
-            if (commentsRecyclerView.getVisibility() == View.VISIBLE) {
-                commentsRecyclerView.setVisibility(View.GONE);
-                toggleNestedCommentsVisibility(commentsRecyclerView);
-
-                notifyDataSetChanged();
-            } else {
-                commentsRecyclerView.setVisibility(View.VISIBLE);
+            if (openPosition != RecyclerView.NO_POSITION) {
+                notifyItemChanged(openPosition);
             }
-        }
 
-        private void toggleNestedCommentsVisibility(View view) {
-            // Recursively toggle visibility of nested comments
-            if (view instanceof RecyclerView) {
-                RecyclerView recyclerView = (RecyclerView) view;
-                for (int i = 0; i < recyclerView.getChildCount(); i++) {
-                    View childView = recyclerView.getChildAt(i);
-                    if (childView.getTag() != null && childView.getTag() instanceof CommentAdapter.CommentViewHolder) {
-                        CommentAdapter.CommentViewHolder commentViewHolder = (CommentAdapter.CommentViewHolder) childView.getTag();
-                        commentViewHolder.toggleNestedCommentsVisibility();
-                    }
-                }
-            }
+            openPosition = (position == openPosition) ? RecyclerView.NO_POSITION : position;
+            notifyItemChanged(openPosition);
         }
     }
+
+//        public void toggleCommentsVisibility() {
+//            // Toggle visibility of nested comments
+//            if (commentsRecyclerView.getVisibility() == View.VISIBLE) {
+//                commentsRecyclerView.setVisibility(View.GONE);
+//                //toggleNestedCommentsVisibility(commentsRecyclerView);
+//
+//
+//            } else {
+//                commentsRecyclerView.setVisibility(View.VISIBLE);
+//            }
+//        }
+
+
+
 }
